@@ -163,18 +163,21 @@ void HSCPAnalyzer_pMSSM::Analyze(bool isData, int options, string outputfilename
 
     for(unsigned int i = 0; i < Pt->size(); i++) {
       if (
-      Pt->at(i) > 55 
+      HLT_Mu50
+      && (Pt->at(i) > 200)
       && (eta->at(i) < 1.0 && eta->at(i) > -1.0)
-      && NOPH->at(i) >= 2 && FOVH->at(i) > 0.8 
-      && NOM->at(i) >= 10 && isHighPurity->at(i) == true 
-      && Chi2->at(i)/Ndof->at(i) < 5 
-      && dZ->at(i) < 0.1 && dXY->at(i) < 0.02 
-      && PFMiniIso_relative->at(i) < 0.02 
-      && EoverP->at(i) < 0.3 
-      && track_genTrackMiniIsoSumPt->at(i) < 15 
-      && PtErr->at(i)/(Pt->at(i)*Pt->at(i)) < 0.0008 
-      && (1 - ProbQ_noL1->at(i)) > 0.3
-      // Ias_StripOnly->at(i);
+      && (NOPH->at(i) >= 2 )
+      && (FOVH->at(i) > 0.8 )
+      && (NOM->at(i) >= 10 )
+      && (isHighPurity->at(i) == true )
+      && (Chi2->at(i)/Ndof->at(i) < 5 )
+      && (dZ->at(i) < 0.1 && dXY->at(i) < 0.02 )
+      && (PFMiniIso_relative->at(i) < 0.02 )
+      && (EoverP->at(i) < 0.3 )
+      && (track_genTrackMiniIsoSumPt->at(i) < 15 )
+      && (PtErr->at(i)/(Pt->at(i)*Pt->at(i)) < 0.0008 )
+      && ((1 - ProbQ_noL1->at(i)) > 0.9)
+      && (Ias_StripOnly->at(i) > 0.35)
       ) {
         preselection_pass = true;
       }      
