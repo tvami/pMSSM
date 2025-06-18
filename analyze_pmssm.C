@@ -3,7 +3,7 @@
 #include <vector>
 #include <THnSparse.h>
 
-void analyze_pmssm(const char* filename) {
+void analyze_pmssm() {
 // Usage:
 // root -l
 // .L analyze_pmssm.C
@@ -31,19 +31,29 @@ void analyze_pmssm(const char* filename) {
   }
 
   // Open the input ROOT file
-  TFile* file = TFile::Open(filename);
+  TFile* file = TFile::Open("input.root");
   if (!file || file->IsZombie()) {
-    cout << "Error: Cannot open file " << filename << endl;
+    cout << "Error: Cannot open file input.root " << endl;
     return;
   }
 
   // Make the output root file
-  TString inputFileNameStr(filename);
+  TString inputFileNameStr("output");
   TString baseName = inputFileNameStr(inputFileNameStr.Last('/') + 1, inputFileNameStr.Length());
-  baseName.ReplaceAll(".root", ""); // Remove .root extension
+
+  // Get the current time with milliseconds
+  auto now = std::chrono::system_clock::now();
+  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+  std::time_t timeNow = std::chrono::system_clock::to_time_t(now);
+  std::tm* localTime = std::localtime(&timeNow);
+
+  // Format the timestamp as HHMMSS_milliseconds
+  std::ostringstream timeStampStream;
+  timeStampStream << std::put_time(localTime, "_%H%M%S_") << std::setfill('0') << std::setw(3) << ms.count();
+  TString timeStamp = timeStampStream.str().c_str();
 
   // Create the output file name
-  TString outputFileName = baseName + "_output.root";
+  TString outputFileName = baseName + timeStamp + ".root";
 
   // Create the output ROOT file
   TFile* outputFile = new TFile(outputFileName, "RECREATE");
@@ -76,8 +86,8 @@ void analyze_pmssm(const char* filename) {
   TH1F* h_particle_final_eta = new TH1F("h_particle_final_eta", Form("#eta of %s;#eta;Count", title_base.Data()), 100, -5, 5);
   TH1F* h_particle_final_beta = new TH1F("h_particle_final_beta", Form("#beta of %s;#beta;Count", title_base.Data()), 100, 0, 1);
   // TH2F* h_models = new TH2F("h_models", "Models;Model 1;Model 2", 600, 0., 600., 125000, 5000.,130000.);
-  TH1F* h_models = new TH1F("h_models", "Models;ID", 60, 0., 60.);
-  TH1F* h_models_final = new TH1F("h_models_final", "Models;ID", 60, 0., 60.);
+  // TH1F* h_models = new TH1F("h_models", "Models;ID", 60, 0., 60.);
+  // TH1F* h_models_final = new TH1F("h_models_final", "Models;ID", 60, 0., 60.);
 
   TH1F* h_models_mother = new TH1F("h_models_mother", "Models;ID", 60, 0., 600.);
   TH1F* h_models_mother_final = new TH1F("h_models_mother_final", "Models;ID", 60, 0., 600.);
@@ -139,6 +149,7 @@ void analyze_pmssm(const char* filename) {
 
     // Now let's manually loop through events
   // nEntries = 100;
+  auto start_time = std::chrono::high_resolution_clock::now(); 
   for (Long64_t iEvent = 0; iEvent < nEntries; iEvent++) {
     tree->GetEntry(iEvent);
     total_events++;
@@ -208,121 +219,121 @@ void analyze_pmssm(const char* filename) {
               double valuesTotalYields[3] = {static_cast<double>(pMSSMmotherID), static_cast<double>(pMSSMdaughterID), 0.};
               thnSparseYields->Fill(valuesTotalYields);
               // Setting each pair from modelIDNames into a bin in a histogram
-              if (pMSSMmotherID == 519 && pMSSMdaughterID == 92470) {
-                  h_models->Fill(1);
-              } else if (pMSSMmotherID == 145; pMSSMdaughterID == 121736) {
-                  h_models->Fill(2);
-              } else if (pMSSMmotherID == 92 && pMSSMdaughterID == 80210) {
-                  h_models->Fill(3);
-              } else if (pMSSMmotherID == 391 && pMSSMdaughterID == 23728) {
-                  h_models->Fill(4);
-              } else if (pMSSMmotherID == 225 && pMSSMdaughterID == 103376) {
-                  h_models->Fill(5);
-              } else if (pMSSMmotherID == 592 && pMSSMdaughterID == 67140) {
-                  h_models->Fill(6);
-              } else if (pMSSMmotherID == 420 && pMSSMdaughterID == 13716) {
-                  h_models->Fill(7);
-              } else if (pMSSMmotherID == 180 && pMSSMdaughterID == 8666) {
-                  h_models->Fill(8);
-              } else if (pMSSMmotherID == 187 && pMSSMdaughterID == 7018) {
-                  h_models->Fill(9);
-              } else if (pMSSMmotherID == 144 && pMSSMdaughterID == 74108) {
-                  h_models->Fill(10);
-              } else if (pMSSMmotherID == 396 && pMSSMdaughterID == 36518) {
-                  h_models->Fill(11);
-              } else if (pMSSMmotherID == 415 && pMSSMdaughterID == 84583) {
-                  h_models->Fill(12);
-              } else if (pMSSMmotherID == 227 && pMSSMdaughterID == 76920) {
-                  h_models->Fill(13);
-              } else if (pMSSMmotherID == 141 && pMSSMdaughterID == 46210) {
-                  h_models->Fill(14);
-              } else if (pMSSMmotherID == 408 && pMSSMdaughterID == 46291) {
-                  h_models->Fill(15);
-              } else if (pMSSMmotherID == 172 && pMSSMdaughterID == 66754) {
-                  h_models->Fill(16);
-              } else if (pMSSMmotherID == 286 && pMSSMdaughterID == 6622) {
-                  h_models->Fill(17);
-              } else if (pMSSMmotherID == 99 && pMSSMdaughterID == 40581) {
-                  h_models->Fill(18);
-              } else if (pMSSMmotherID == 7 && pMSSMdaughterID == 109751) {
-                  h_models->Fill(19);
-              } else if (pMSSMmotherID == 337 && pMSSMdaughterID == 78455) {
-                  h_models->Fill(20);
-              } else if (pMSSMmotherID == 454 && pMSSMdaughterID == 103548) {
-                  h_models->Fill(21);
-              } else if (pMSSMmotherID == 348 && pMSSMdaughterID == 103344) {
-                  h_models->Fill(22);
-              } else if (pMSSMmotherID == 559 && pMSSMdaughterID == 20332) {
-                  h_models->Fill(23);
-              } else if (pMSSMmotherID == 130 && pMSSMdaughterID == 62470) {
-                  h_models->Fill(24);
-              } else if (pMSSMmotherID == 409 && pMSSMdaughterID == 108221) {
-                  h_models->Fill(25);
-              } else if (pMSSMmotherID == 219 && pMSSMdaughterID == 41160) {
-                  h_models->Fill(26);
-              } else if (pMSSMmotherID == 333 && pMSSMdaughterID == 56703) {
-                  h_models->Fill(27);
-              } else if (pMSSMmotherID == 350 && pMSSMdaughterID == 42125) {
-                  h_models->Fill(28);
-              } else if (pMSSMmotherID == 496 && pMSSMdaughterID == 55914) {
-                  h_models->Fill(29);
-              } else if (pMSSMmotherID == 555 && pMSSMdaughterID == 61336) {
-                  h_models->Fill(30);
-              } else if (pMSSMmotherID == 313 && pMSSMdaughterID == 111220) {
-                  h_models->Fill(31);
-              } else if (pMSSMmotherID == 548 && pMSSMdaughterID == 78340) {
-                  h_models->Fill(32);
-              } else if (pMSSMmotherID == 595 && pMSSMdaughterID == 105415) {
-                  h_models->Fill(33);
-              } else if (pMSSMmotherID == 521 && pMSSMdaughterID == 34214) {
-                  h_models->Fill(34);
-              } else if (pMSSMmotherID == 429 && pMSSMdaughterID == 32850) {
-                  h_models->Fill(35);
-              } else if (pMSSMmotherID == 337 && pMSSMdaughterID == 79479) {
-                  h_models->Fill(36);
-              } else if (pMSSMmotherID == 533 && pMSSMdaughterID == 7236) {
-                  h_models->Fill(37);
-              } else if (pMSSMmotherID == 175 && pMSSMdaughterID == 88241) {
-                  h_models->Fill(38);
-              } else if (pMSSMmotherID == 578 && pMSSMdaughterID == 17518) {
-                  h_models->Fill(39);
-              } else if (pMSSMmotherID == 329 && pMSSMdaughterID == 96582) {
-                  h_models->Fill(40);
-              } else if (pMSSMmotherID == 71 && pMSSMdaughterID == 123080) {
-                  h_models->Fill(41);
-              } else if (pMSSMmotherID == 128 && pMSSMdaughterID == 137591) {
-                  h_models->Fill(42);
-              } else if (pMSSMmotherID == 581 && pMSSMdaughterID == 66623) {
-                  h_models->Fill(43);
-              } else if (pMSSMmotherID == 284 && pMSSMdaughterID == 17369) {
-                  h_models->Fill(44);
-              } else if (pMSSMmotherID == 245 && pMSSMdaughterID == 110378) {
-                  h_models->Fill(45);
-              } else if (pMSSMmotherID == 434 && pMSSMdaughterID == 106293) {
-                  h_models->Fill(46);
-              } else if (pMSSMmotherID == 305 && pMSSMdaughterID == 49514) {
-                  h_models->Fill(47);
-              } else if (pMSSMmotherID == 520 && pMSSMdaughterID == 69892) {
-                  h_models->Fill(48);
-              } else if (pMSSMmotherID == 343 && pMSSMdaughterID == 56182) {
-                  h_models->Fill(49);
-              } else if (pMSSMmotherID == 310 && pMSSMdaughterID == 46904) {
-                  h_models->Fill(50);
-              } else if (pMSSMmotherID == 243 && pMSSMdaughterID == 118386) {
-                  h_models->Fill(51);
-              } else if (pMSSMmotherID == 547 && pMSSMdaughterID == 74010) {
-                  h_models->Fill(52);
-              } else if (pMSSMmotherID == 94 && pMSSMdaughterID == 82573) {
-                  h_models->Fill(53);
-              } else if (pMSSMmotherID == 94 && pMSSMdaughterID == 49337) {
-                  h_models->Fill(54);
-              } else if (pMSSMmotherID == 322 && pMSSMdaughterID == 125244) {
-                  h_models->Fill(55);
-              } else if (pMSSMmotherID == 93 && pMSSMdaughterID == 76578) {
-                  h_models->Fill(56);
-              } else {
-                // std::cerr << "Warning: Unrecognized model ID: " << modelIDName << std::endl;
-              }
+              // if (pMSSMmotherID == 519 && pMSSMdaughterID == 92470) {
+              //     h_models->Fill(1);
+              // } else if (pMSSMmotherID == 145; pMSSMdaughterID == 121736) {
+              //     h_models->Fill(2);
+              // } else if (pMSSMmotherID == 92 && pMSSMdaughterID == 80210) {
+              //     h_models->Fill(3);
+              // } else if (pMSSMmotherID == 391 && pMSSMdaughterID == 23728) {
+              //     h_models->Fill(4);
+              // } else if (pMSSMmotherID == 225 && pMSSMdaughterID == 103376) {
+              //     h_models->Fill(5);
+              // } else if (pMSSMmotherID == 592 && pMSSMdaughterID == 67140) {
+              //     h_models->Fill(6);
+              // } else if (pMSSMmotherID == 420 && pMSSMdaughterID == 13716) {
+              //     h_models->Fill(7);
+              // } else if (pMSSMmotherID == 180 && pMSSMdaughterID == 8666) {
+              //     h_models->Fill(8);
+              // } else if (pMSSMmotherID == 187 && pMSSMdaughterID == 7018) {
+              //     h_models->Fill(9);
+              // } else if (pMSSMmotherID == 144 && pMSSMdaughterID == 74108) {
+              //     h_models->Fill(10);
+              // } else if (pMSSMmotherID == 396 && pMSSMdaughterID == 36518) {
+              //     h_models->Fill(11);
+              // } else if (pMSSMmotherID == 415 && pMSSMdaughterID == 84583) {
+              //     h_models->Fill(12);
+              // } else if (pMSSMmotherID == 227 && pMSSMdaughterID == 76920) {
+              //     h_models->Fill(13);
+              // } else if (pMSSMmotherID == 141 && pMSSMdaughterID == 46210) {
+              //     h_models->Fill(14);
+              // } else if (pMSSMmotherID == 408 && pMSSMdaughterID == 46291) {
+              //     h_models->Fill(15);
+              // } else if (pMSSMmotherID == 172 && pMSSMdaughterID == 66754) {
+              //     h_models->Fill(16);
+              // } else if (pMSSMmotherID == 286 && pMSSMdaughterID == 6622) {
+              //     h_models->Fill(17);
+              // } else if (pMSSMmotherID == 99 && pMSSMdaughterID == 40581) {
+              //     h_models->Fill(18);
+              // } else if (pMSSMmotherID == 7 && pMSSMdaughterID == 109751) {
+              //     h_models->Fill(19);
+              // } else if (pMSSMmotherID == 337 && pMSSMdaughterID == 78455) {
+              //     h_models->Fill(20);
+              // } else if (pMSSMmotherID == 454 && pMSSMdaughterID == 103548) {
+              //     h_models->Fill(21);
+              // } else if (pMSSMmotherID == 348 && pMSSMdaughterID == 103344) {
+              //     h_models->Fill(22);
+              // } else if (pMSSMmotherID == 559 && pMSSMdaughterID == 20332) {
+              //     h_models->Fill(23);
+              // } else if (pMSSMmotherID == 130 && pMSSMdaughterID == 62470) {
+              //     h_models->Fill(24);
+              // } else if (pMSSMmotherID == 409 && pMSSMdaughterID == 108221) {
+              //     h_models->Fill(25);
+              // } else if (pMSSMmotherID == 219 && pMSSMdaughterID == 41160) {
+              //     h_models->Fill(26);
+              // } else if (pMSSMmotherID == 333 && pMSSMdaughterID == 56703) {
+              //     h_models->Fill(27);
+              // } else if (pMSSMmotherID == 350 && pMSSMdaughterID == 42125) {
+              //     h_models->Fill(28);
+              // } else if (pMSSMmotherID == 496 && pMSSMdaughterID == 55914) {
+              //     h_models->Fill(29);
+              // } else if (pMSSMmotherID == 555 && pMSSMdaughterID == 61336) {
+              //     h_models->Fill(30);
+              // } else if (pMSSMmotherID == 313 && pMSSMdaughterID == 111220) {
+              //     h_models->Fill(31);
+              // } else if (pMSSMmotherID == 548 && pMSSMdaughterID == 78340) {
+              //     h_models->Fill(32);
+              // } else if (pMSSMmotherID == 595 && pMSSMdaughterID == 105415) {
+              //     h_models->Fill(33);
+              // } else if (pMSSMmotherID == 521 && pMSSMdaughterID == 34214) {
+              //     h_models->Fill(34);
+              // } else if (pMSSMmotherID == 429 && pMSSMdaughterID == 32850) {
+              //     h_models->Fill(35);
+              // } else if (pMSSMmotherID == 337 && pMSSMdaughterID == 79479) {
+              //     h_models->Fill(36);
+              // } else if (pMSSMmotherID == 533 && pMSSMdaughterID == 7236) {
+              //     h_models->Fill(37);
+              // } else if (pMSSMmotherID == 175 && pMSSMdaughterID == 88241) {
+              //     h_models->Fill(38);
+              // } else if (pMSSMmotherID == 578 && pMSSMdaughterID == 17518) {
+              //     h_models->Fill(39);
+              // } else if (pMSSMmotherID == 329 && pMSSMdaughterID == 96582) {
+              //     h_models->Fill(40);
+              // } else if (pMSSMmotherID == 71 && pMSSMdaughterID == 123080) {
+              //     h_models->Fill(41);
+              // } else if (pMSSMmotherID == 128 && pMSSMdaughterID == 137591) {
+              //     h_models->Fill(42);
+              // } else if (pMSSMmotherID == 581 && pMSSMdaughterID == 66623) {
+              //     h_models->Fill(43);
+              // } else if (pMSSMmotherID == 284 && pMSSMdaughterID == 17369) {
+              //     h_models->Fill(44);
+              // } else if (pMSSMmotherID == 245 && pMSSMdaughterID == 110378) {
+              //     h_models->Fill(45);
+              // } else if (pMSSMmotherID == 434 && pMSSMdaughterID == 106293) {
+              //     h_models->Fill(46);
+              // } else if (pMSSMmotherID == 305 && pMSSMdaughterID == 49514) {
+              //     h_models->Fill(47);
+              // } else if (pMSSMmotherID == 520 && pMSSMdaughterID == 69892) {
+              //     h_models->Fill(48);
+              // } else if (pMSSMmotherID == 343 && pMSSMdaughterID == 56182) {
+              //     h_models->Fill(49);
+              // } else if (pMSSMmotherID == 310 && pMSSMdaughterID == 46904) {
+              //     h_models->Fill(50);
+              // } else if (pMSSMmotherID == 243 && pMSSMdaughterID == 118386) {
+              //     h_models->Fill(51);
+              // } else if (pMSSMmotherID == 547 && pMSSMdaughterID == 74010) {
+              //     h_models->Fill(52);
+              // } else if (pMSSMmotherID == 94 && pMSSMdaughterID == 82573) {
+              //     h_models->Fill(53);
+              // } else if (pMSSMmotherID == 94 && pMSSMdaughterID == 49337) {
+              //     h_models->Fill(54);
+              // } else if (pMSSMmotherID == 322 && pMSSMdaughterID == 125244) {
+              //     h_models->Fill(55);
+              // } else if (pMSSMmotherID == 93 && pMSSMdaughterID == 76578) {
+              //     h_models->Fill(56);
+              // } else {
+              //   // std::cerr << "Warning: Unrecognized model ID: " << modelIDName << std::endl;
+              // }
 
               // Output both numbers
               // std::cout << "Leaf is valid and true. First number: " << pMSSMmotherID
@@ -463,119 +474,119 @@ void analyze_pmssm(const char* filename) {
       double valuesYields[3] = {static_cast<double>(pMSSMmotherID), static_cast<double>(pMSSMdaughterID), 1};
       thnSparseYields->Fill(valuesYields, maxEfficiency);
 
-      if (pMSSMmotherID == 519 && pMSSMdaughterID == 92470) {
-        h_models_final->Fill(1, maxEfficiency);
-      } else if (pMSSMmotherID == 145; pMSSMdaughterID == 121736) {
-        h_models_final->Fill(2, maxEfficiency);
-      } else if (pMSSMmotherID == 92 && pMSSMdaughterID == 80210) {
-        h_models_final->Fill(3, maxEfficiency);
-      } else if (pMSSMmotherID == 391 && pMSSMdaughterID == 23728) {
-        h_models_final->Fill(4, maxEfficiency);
-      } else if (pMSSMmotherID == 225 && pMSSMdaughterID == 103376) {
-        h_models_final->Fill(5, maxEfficiency);
-      } else if (pMSSMmotherID == 592 && pMSSMdaughterID == 67140) {
-        h_models_final->Fill(6, maxEfficiency);
-      } else if (pMSSMmotherID == 420 && pMSSMdaughterID == 13716) {
-        h_models_final->Fill(7, maxEfficiency);
-      } else if (pMSSMmotherID == 180 && pMSSMdaughterID == 8666) {
-        h_models_final->Fill(8, maxEfficiency);
-      } else if (pMSSMmotherID == 187 && pMSSMdaughterID == 7018) {
-        h_models_final->Fill(9, maxEfficiency);
-      } else if (pMSSMmotherID == 144 && pMSSMdaughterID == 74108) {
-        h_models_final->Fill(10, maxEfficiency);
-      } else if (pMSSMmotherID == 396 && pMSSMdaughterID == 36518) {
-        h_models_final->Fill(11, maxEfficiency);
-      } else if (pMSSMmotherID == 415 && pMSSMdaughterID == 84583) {
-        h_models_final->Fill(12, maxEfficiency);
-      } else if (pMSSMmotherID == 227 && pMSSMdaughterID == 76920) {
-        h_models_final->Fill(13, maxEfficiency);
-      } else if (pMSSMmotherID == 141 && pMSSMdaughterID == 46210) {
-        h_models_final->Fill(14, maxEfficiency);
-      } else if (pMSSMmotherID == 408 && pMSSMdaughterID == 46291) {
-        h_models_final->Fill(15, maxEfficiency);
-      } else if (pMSSMmotherID == 172 && pMSSMdaughterID == 66754) {
-        h_models_final->Fill(16, maxEfficiency);
-      } else if (pMSSMmotherID == 286 && pMSSMdaughterID == 6622) {
-        h_models_final->Fill(17, maxEfficiency);
-      } else if (pMSSMmotherID == 99 && pMSSMdaughterID == 40581) {
-        h_models_final->Fill(18, maxEfficiency);
-      } else if (pMSSMmotherID == 7 && pMSSMdaughterID == 109751) {
-        h_models_final->Fill(19, maxEfficiency);
-      } else if (pMSSMmotherID == 337 && pMSSMdaughterID == 78455) {
-        h_models_final->Fill(20, maxEfficiency);
-      } else if (pMSSMmotherID == 454 && pMSSMdaughterID == 103548) {
-        h_models_final->Fill(21, maxEfficiency);
-      } else if (pMSSMmotherID == 348 && pMSSMdaughterID == 103344) {
-        h_models_final->Fill(22, maxEfficiency);
-      } else if (pMSSMmotherID == 559 && pMSSMdaughterID == 20332) {
-        h_models_final->Fill(23, maxEfficiency);
-      } else if (pMSSMmotherID == 130 && pMSSMdaughterID == 62470) {
-        h_models_final->Fill(24, maxEfficiency);
-      } else if (pMSSMmotherID == 409 && pMSSMdaughterID == 108221) {
-        h_models_final->Fill(25, maxEfficiency);
-      } else if (pMSSMmotherID == 219 && pMSSMdaughterID == 41160) {
-        h_models_final->Fill(26, maxEfficiency);
-      } else if (pMSSMmotherID == 333 && pMSSMdaughterID == 56703) {
-        h_models_final->Fill(27, maxEfficiency);
-      } else if (pMSSMmotherID == 350 && pMSSMdaughterID == 42125) {
-        h_models_final->Fill(28, maxEfficiency);
-      } else if (pMSSMmotherID == 496 && pMSSMdaughterID == 55914) {
-        h_models_final->Fill(29, maxEfficiency);
-      } else if (pMSSMmotherID == 555 && pMSSMdaughterID == 61336) {
-        h_models_final->Fill(30, maxEfficiency);
-      } else if (pMSSMmotherID == 313 && pMSSMdaughterID == 111220) {
-        h_models_final->Fill(31, maxEfficiency);
-      } else if (pMSSMmotherID == 548 && pMSSMdaughterID == 78340) {
-        h_models_final->Fill(32, maxEfficiency);
-      } else if (pMSSMmotherID == 595 && pMSSMdaughterID == 105415) {
-        h_models_final->Fill(33, maxEfficiency);
-      } else if (pMSSMmotherID == 521 && pMSSMdaughterID == 34214) {
-        h_models_final->Fill(34, maxEfficiency);
-      } else if (pMSSMmotherID == 429 && pMSSMdaughterID == 32850) {
-        h_models_final->Fill(35, maxEfficiency);
-      } else if (pMSSMmotherID == 337 && pMSSMdaughterID == 79479) {
-        h_models_final->Fill(36, maxEfficiency);
-      } else if (pMSSMmotherID == 533 && pMSSMdaughterID == 7236) {
-        h_models_final->Fill(37, maxEfficiency);
-      } else if (pMSSMmotherID == 175 && pMSSMdaughterID == 88241) {
-        h_models_final->Fill(38, maxEfficiency);
-      } else if (pMSSMmotherID == 578 && pMSSMdaughterID == 17518) {
-        h_models_final->Fill(39, maxEfficiency);
-      } else if (pMSSMmotherID == 329 && pMSSMdaughterID == 96582) {
-        h_models_final->Fill(40, maxEfficiency);
-      } else if (pMSSMmotherID == 71 && pMSSMdaughterID == 123080) {
-        h_models_final->Fill(41, maxEfficiency);
-      } else if (pMSSMmotherID == 128 && pMSSMdaughterID == 137591) {
-        h_models_final->Fill(42, maxEfficiency);
-      } else if (pMSSMmotherID == 581 && pMSSMdaughterID == 66623) {
-        h_models_final->Fill(43, maxEfficiency);
-      } else if (pMSSMmotherID == 284 && pMSSMdaughterID == 17369) {
-        h_models_final->Fill(44, maxEfficiency);
-      } else if (pMSSMmotherID == 245 && pMSSMdaughterID == 110378) {
-        h_models_final->Fill(45, maxEfficiency);
-      } else if (pMSSMmotherID == 434 && pMSSMdaughterID == 106293) {
-        h_models_final->Fill(46, maxEfficiency);
-      } else if (pMSSMmotherID == 305 && pMSSMdaughterID == 49514) {
-        h_models_final->Fill(47, maxEfficiency);
-      } else if (pMSSMmotherID == 520 && pMSSMdaughterID == 69892) {
-        h_models_final->Fill(48, maxEfficiency);
-      } else if (pMSSMmotherID == 343 && pMSSMdaughterID == 56182) {
-        h_models_final->Fill(49, maxEfficiency);
-      } else if (pMSSMmotherID == 310 && pMSSMdaughterID == 46904) {
-        h_models_final->Fill(50, maxEfficiency);
-      } else if (pMSSMmotherID == 243 && pMSSMdaughterID == 118386) {
-        h_models_final->Fill(51, maxEfficiency);
-      } else if (pMSSMmotherID == 547 && pMSSMdaughterID == 74010) {
-        h_models_final->Fill(52, maxEfficiency);
-      } else if (pMSSMmotherID == 94 && pMSSMdaughterID == 82573) {
-        h_models_final->Fill(53, maxEfficiency);
-      } else if (pMSSMmotherID == 94 && pMSSMdaughterID == 49337) {
-        h_models_final->Fill(54, maxEfficiency);
-      } else if (pMSSMmotherID == 322 && pMSSMdaughterID == 125244) {
-        h_models_final->Fill(55, maxEfficiency);
-      } else if (pMSSMmotherID == 93 && pMSSMdaughterID == 76578) {
-        h_models_final->Fill(56, maxEfficiency);
-      }
+      // if (pMSSMmotherID == 519 && pMSSMdaughterID == 92470) {
+      //   h_models_final->Fill(1, maxEfficiency);
+      // } else if (pMSSMmotherID == 145; pMSSMdaughterID == 121736) {
+      //   h_models_final->Fill(2, maxEfficiency);
+      // } else if (pMSSMmotherID == 92 && pMSSMdaughterID == 80210) {
+      //   h_models_final->Fill(3, maxEfficiency);
+      // } else if (pMSSMmotherID == 391 && pMSSMdaughterID == 23728) {
+      //   h_models_final->Fill(4, maxEfficiency);
+      // } else if (pMSSMmotherID == 225 && pMSSMdaughterID == 103376) {
+      //   h_models_final->Fill(5, maxEfficiency);
+      // } else if (pMSSMmotherID == 592 && pMSSMdaughterID == 67140) {
+      //   h_models_final->Fill(6, maxEfficiency);
+      // } else if (pMSSMmotherID == 420 && pMSSMdaughterID == 13716) {
+      //   h_models_final->Fill(7, maxEfficiency);
+      // } else if (pMSSMmotherID == 180 && pMSSMdaughterID == 8666) {
+      //   h_models_final->Fill(8, maxEfficiency);
+      // } else if (pMSSMmotherID == 187 && pMSSMdaughterID == 7018) {
+      //   h_models_final->Fill(9, maxEfficiency);
+      // } else if (pMSSMmotherID == 144 && pMSSMdaughterID == 74108) {
+      //   h_models_final->Fill(10, maxEfficiency);
+      // } else if (pMSSMmotherID == 396 && pMSSMdaughterID == 36518) {
+      //   h_models_final->Fill(11, maxEfficiency);
+      // } else if (pMSSMmotherID == 415 && pMSSMdaughterID == 84583) {
+      //   h_models_final->Fill(12, maxEfficiency);
+      // } else if (pMSSMmotherID == 227 && pMSSMdaughterID == 76920) {
+      //   h_models_final->Fill(13, maxEfficiency);
+      // } else if (pMSSMmotherID == 141 && pMSSMdaughterID == 46210) {
+      //   h_models_final->Fill(14, maxEfficiency);
+      // } else if (pMSSMmotherID == 408 && pMSSMdaughterID == 46291) {
+      //   h_models_final->Fill(15, maxEfficiency);
+      // } else if (pMSSMmotherID == 172 && pMSSMdaughterID == 66754) {
+      //   h_models_final->Fill(16, maxEfficiency);
+      // } else if (pMSSMmotherID == 286 && pMSSMdaughterID == 6622) {
+      //   h_models_final->Fill(17, maxEfficiency);
+      // } else if (pMSSMmotherID == 99 && pMSSMdaughterID == 40581) {
+      //   h_models_final->Fill(18, maxEfficiency);
+      // } else if (pMSSMmotherID == 7 && pMSSMdaughterID == 109751) {
+      //   h_models_final->Fill(19, maxEfficiency);
+      // } else if (pMSSMmotherID == 337 && pMSSMdaughterID == 78455) {
+      //   h_models_final->Fill(20, maxEfficiency);
+      // } else if (pMSSMmotherID == 454 && pMSSMdaughterID == 103548) {
+      //   h_models_final->Fill(21, maxEfficiency);
+      // } else if (pMSSMmotherID == 348 && pMSSMdaughterID == 103344) {
+      //   h_models_final->Fill(22, maxEfficiency);
+      // } else if (pMSSMmotherID == 559 && pMSSMdaughterID == 20332) {
+      //   h_models_final->Fill(23, maxEfficiency);
+      // } else if (pMSSMmotherID == 130 && pMSSMdaughterID == 62470) {
+      //   h_models_final->Fill(24, maxEfficiency);
+      // } else if (pMSSMmotherID == 409 && pMSSMdaughterID == 108221) {
+      //   h_models_final->Fill(25, maxEfficiency);
+      // } else if (pMSSMmotherID == 219 && pMSSMdaughterID == 41160) {
+      //   h_models_final->Fill(26, maxEfficiency);
+      // } else if (pMSSMmotherID == 333 && pMSSMdaughterID == 56703) {
+      //   h_models_final->Fill(27, maxEfficiency);
+      // } else if (pMSSMmotherID == 350 && pMSSMdaughterID == 42125) {
+      //   h_models_final->Fill(28, maxEfficiency);
+      // } else if (pMSSMmotherID == 496 && pMSSMdaughterID == 55914) {
+      //   h_models_final->Fill(29, maxEfficiency);
+      // } else if (pMSSMmotherID == 555 && pMSSMdaughterID == 61336) {
+      //   h_models_final->Fill(30, maxEfficiency);
+      // } else if (pMSSMmotherID == 313 && pMSSMdaughterID == 111220) {
+      //   h_models_final->Fill(31, maxEfficiency);
+      // } else if (pMSSMmotherID == 548 && pMSSMdaughterID == 78340) {
+      //   h_models_final->Fill(32, maxEfficiency);
+      // } else if (pMSSMmotherID == 595 && pMSSMdaughterID == 105415) {
+      //   h_models_final->Fill(33, maxEfficiency);
+      // } else if (pMSSMmotherID == 521 && pMSSMdaughterID == 34214) {
+      //   h_models_final->Fill(34, maxEfficiency);
+      // } else if (pMSSMmotherID == 429 && pMSSMdaughterID == 32850) {
+      //   h_models_final->Fill(35, maxEfficiency);
+      // } else if (pMSSMmotherID == 337 && pMSSMdaughterID == 79479) {
+      //   h_models_final->Fill(36, maxEfficiency);
+      // } else if (pMSSMmotherID == 533 && pMSSMdaughterID == 7236) {
+      //   h_models_final->Fill(37, maxEfficiency);
+      // } else if (pMSSMmotherID == 175 && pMSSMdaughterID == 88241) {
+      //   h_models_final->Fill(38, maxEfficiency);
+      // } else if (pMSSMmotherID == 578 && pMSSMdaughterID == 17518) {
+      //   h_models_final->Fill(39, maxEfficiency);
+      // } else if (pMSSMmotherID == 329 && pMSSMdaughterID == 96582) {
+      //   h_models_final->Fill(40, maxEfficiency);
+      // } else if (pMSSMmotherID == 71 && pMSSMdaughterID == 123080) {
+      //   h_models_final->Fill(41, maxEfficiency);
+      // } else if (pMSSMmotherID == 128 && pMSSMdaughterID == 137591) {
+      //   h_models_final->Fill(42, maxEfficiency);
+      // } else if (pMSSMmotherID == 581 && pMSSMdaughterID == 66623) {
+      //   h_models_final->Fill(43, maxEfficiency);
+      // } else if (pMSSMmotherID == 284 && pMSSMdaughterID == 17369) {
+      //   h_models_final->Fill(44, maxEfficiency);
+      // } else if (pMSSMmotherID == 245 && pMSSMdaughterID == 110378) {
+      //   h_models_final->Fill(45, maxEfficiency);
+      // } else if (pMSSMmotherID == 434 && pMSSMdaughterID == 106293) {
+      //   h_models_final->Fill(46, maxEfficiency);
+      // } else if (pMSSMmotherID == 305 && pMSSMdaughterID == 49514) {
+      //   h_models_final->Fill(47, maxEfficiency);
+      // } else if (pMSSMmotherID == 520 && pMSSMdaughterID == 69892) {
+      //   h_models_final->Fill(48, maxEfficiency);
+      // } else if (pMSSMmotherID == 343 && pMSSMdaughterID == 56182) {
+      //   h_models_final->Fill(49, maxEfficiency);
+      // } else if (pMSSMmotherID == 310 && pMSSMdaughterID == 46904) {
+      //   h_models_final->Fill(50, maxEfficiency);
+      // } else if (pMSSMmotherID == 243 && pMSSMdaughterID == 118386) {
+      //   h_models_final->Fill(51, maxEfficiency);
+      // } else if (pMSSMmotherID == 547 && pMSSMdaughterID == 74010) {
+      //   h_models_final->Fill(52, maxEfficiency);
+      // } else if (pMSSMmotherID == 94 && pMSSMdaughterID == 82573) {
+      //   h_models_final->Fill(53, maxEfficiency);
+      // } else if (pMSSMmotherID == 94 && pMSSMdaughterID == 49337) {
+      //   h_models_final->Fill(54, maxEfficiency);
+      // } else if (pMSSMmotherID == 322 && pMSSMdaughterID == 125244) {
+      //   h_models_final->Fill(55, maxEfficiency);
+      // } else if (pMSSMmotherID == 93 && pMSSMdaughterID == 76578) {
+      //   h_models_final->Fill(56, maxEfficiency);
+      // }
 
 
 
@@ -649,7 +660,17 @@ void analyze_pmssm(const char* filename) {
   cout << "Weighted events: " << weightedEvents << endl;
   cout << "Total charginos with incorrect status: " << numCharginoWithNotCorrectStatus << endl;
   
+  // End timing
+  auto end_time = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed_time = end_time - start_time;
 
+  // Calculate average time per event
+  double avg_time_per_event = elapsed_time.count() / nEntries;
+
+  // Print timing results
+  std::cout << "Total elapsed time: " << elapsed_time.count() << " seconds" << std::endl;
+  std::cout << "Average time per event: " << avg_time_per_event << " seconds" << std::endl;
+  
   
     // Create canvas with 5 plots
   TCanvas* c1 = new TCanvas("c1", Form("PDG Daughter Analysis"), 1600, 1000);
@@ -761,8 +782,8 @@ void analyze_pmssm(const char* filename) {
   h_models_mother_final->Write();
   h_models_daughter->Write();
   h_models_daughter_final->Write();
-  h_models->Write();
-  h_models_final->Write();
+  // h_models->Write();
+  // h_models_final->Write();
 
   
     // Clean up
