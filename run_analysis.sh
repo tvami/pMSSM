@@ -96,8 +96,10 @@ xrdcp root://cms-xrd-global.cern.ch/$rtfile input.root
 # /bin/ls -altr ./
 
 # run script
-echo "\n[1] root -l -q analyze_pmssm.C"
-root -b -l -q analyze_pmssm.C
+#echo "\n[1] root -l -q 'analyze_pmssm.C(0,10000)'"
+echo "\n[1] root -l -q 'analyze_pmssm.C(10000,20000)'"
+#root -b -l -q 'analyze_pmssm.C(0,10000)'
+root -b -l -q 'analyze_pmssm.C(10000,20000)'
 
 echo "base directory has:"
 /bin/ls -altr .
