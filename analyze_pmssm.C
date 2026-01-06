@@ -62,7 +62,7 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange) {
   TString randomNumberStr = randomNumberStream.str().c_str();
 
   // Create the output file name
-  TString outputFileName = baseName + timeStamp + randomNumberStr + ".root";
+  TString outputFileName = baseName + timeStamp + randomNumberStr + "_from" + startRange + "to" + endRange + ".root";
 
   // Create the output ROOT file
   TFile* outputFile = new TFile(outputFileName, "RECREATE");
@@ -160,6 +160,7 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange) {
   if (startRange > nEntries) startRange = nEntries;
   if (endRange > nEntries) endRange = nEntries;
   if (startRange == endRange) {
+    std::cout << " Not running: event out of range! " << std::endl;
     return;
   }
 
