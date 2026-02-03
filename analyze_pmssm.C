@@ -3,32 +3,54 @@
 #include <vector>
 #include <THnSparse.h>
 
-void analyze_pmssm(Long64_t startRange, Long64_t endRange) {
+void analyze_pmssm(Long64_t startRange, Long64_t endRange, TString originalFilePath = "") {
 // Usage:
 // root -l
 // .L analyze_pmssm.C
-// analyze_pmssm("NanoGen.root", 36)
-// or selectedCharginoIndexust
-// root -l -q 'analyze_pmssm.C("PMSSM_set_1_LL_TuneCP2_13TeV_FS_NANOv9.root")'
+// analyze_pmssm(0, 10000, "/store/mc/.../PMSSM_set_2_LL_1_TuneCP2_13TeV-pythia8/.../file.root")
+// or from bash script:
+// root -b -l -q "analyze_pmssm.C(0, 10000, \"$rtfile\")"
 
   gROOT->SetBatch(kTRUE);
 
-  // Open the input file containing the efficiency map
-  // TFile* inputFile = TFile::Open("triggerAndPres.root", "READ");
-  // TFile* inputFile = TFile::Open("triggerAndPresAndSelection.root", "READ");
-  TFile* inputFile = TFile::Open("triggerAndPresAndSelectionTight.root", "READ");
-  if (!inputFile || inputFile->IsZombie()) {
-      std::cerr << "Error: Could not open input file!" << std::endl;
+  // Open the input files containing the efficiency maps
+  TFile* inputFile1 = TFile::Open("triggerAndPres.root", "READ");
+  TFile* inputFile2 = TFile::Open("triggerAndPresAndSelection.root", "READ");
+  TFile* inputFile3 = TFile::Open("triggerAndPresAndSelectionTight.root", "READ");
+  
+  if (!inputFile1 || inputFile1->IsZombie()) {
+      std::cerr << "Error: Could not open triggerAndPres.root!" << std::endl;
+      return;
+  }
+  if (!inputFile2 || inputFile2->IsZombie()) {
+      std::cerr << "Error: Could not open triggerAndPresAndSelection.root!" << std::endl;
+      return;
+  }
+  if (!inputFile3 || inputFile3->IsZombie()) {
+      std::cerr << "Error: Could not open triggerAndPresAndSelectionTight.root!" << std::endl;
       return;
   }
 
-  // Get efficiency map from the template
-  TProfile3D* eff_profile = (TProfile3D*)inputFile->Get("eff_profile");
-  if (!eff_profile) {
-      std::cerr << "Error: Could not find TProfile3D obselectedCharginoIndexect!" << std::endl;
-      inputFile->Close();
+  // Get efficiency maps from the templates
+  TProfile3D* eff_profile_trigPres = (TProfile3D*)inputFile1->Get("eff_profile");
+  TProfile3D* eff_profile_selection = (TProfile3D*)inputFile2->Get("eff_profile");
+  TProfile3D* eff_profile_tight = (TProfile3D*)inputFile3->Get("eff_profile");
+  
+  if (!eff_profile_trigPres) {
+      std::cerr << "Error: Could not find eff_profile in triggerAndPres.root!" << std::endl;
       return;
   }
+  if (!eff_profile_selection) {
+      std::cerr << "Error: Could not find eff_profile in triggerAndPresAndSelection.root!" << std::endl;
+      return;
+  }
+  if (!eff_profile_tight) {
+      std::cerr << "Error: Could not find eff_profile in triggerAndPresAndSelectionTight.root!" << std::endl;
+      return;
+  }
+  
+  // Use the tight selection for the main analysis (default behavior)
+  TProfile3D* eff_profile = eff_profile_tight;
 
   // Open the input ROOT file
   TFile* file = TFile::Open("input.root");
@@ -61,8 +83,35 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange) {
   randomNumberStream << "_" << std::setfill('0') << std::setw(4) << randomNumber;
   TString randomNumberStr = randomNumberStream.str().c_str();
 
+  // Extract the dataset name from the original file path
+  TString datasetName = "";
+  if (originalFilePath != "") {
+    // Example path: /store/mc/RunIISummer20UL18NanoAODv9/PMSSM_set_2_LL_1_TuneCP2_13TeV-pythia8/NANOAODSIM/...
+    // Tokenize splits to: ["store", "mc", "RunIISummer20UL18NanoAODv9", "PMSSM_set_2_LL_1_TuneCP2_13TeV-pythia8", ...]
+    TObjArray* pathParts = originalFilePath.Tokenize("/");
+    if (pathParts->GetEntries() > 3) {
+      TString fullDatasetName = ((TObjString*)pathParts->At(3))->GetString();
+      // Remove everything after "_TuneCP" to get PMSSM_set_2_LL_1
+      Ssiz_t tunePos = fullDatasetName.Index("_TuneCP");
+      if (tunePos != kNPOS) {
+        datasetName = fullDatasetName(0, tunePos);
+      } else {
+        datasetName = fullDatasetName;
+      }
+      datasetName = "_" + datasetName;
+    }
+    delete pathParts;
+  }
+
+  // Add also which year the file name represents
+  if (originalFilePath.Contains("UL17")) {
+    datasetName += "_2017";
+  } else if (originalFilePath.Contains("UL18")) {
+    datasetName += "_2018";
+  }
+
   // Create the output file name
-  TString outputFileName = baseName + timeStamp + randomNumberStr + "_from" + startRange + "to" + endRange + ".root";
+  TString outputFileName = baseName + datasetName + timeStamp + randomNumberStr + "_from" + startRange + "to" + endRange + ".root";
 
   // Create the output ROOT file
   TFile* outputFile = new TFile(outputFileName, "RECREATE");
@@ -99,6 +148,21 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange) {
   TH1F* h_models_mother_final = new TH1F("h_models_mother_final", "Models;ID", 60, 0., 600.);
   TH1F* h_models_daughter = new TH1F("h_models_daughter", "Models;ID", 1448, 0., 144855.);
   TH1F* h_models_daughter_final = new TH1F("h_models_daughter_final", "Models;ID", 1448, 0., 144855.);
+  
+  // Validation histograms for gluino ~1800 GeV corner case at different selection stages
+  TH1F* h_gluino1800_efficiency_trigPres = new TH1F("h_gluino1800_efficiency_trigPres", "Efficiency for gluino ~1800 GeV (Trigger+Prescale);Efficiency;Events", 100, 0, 1);
+  TH1F* h_gluino1800_efficiency_selection = new TH1F("h_gluino1800_efficiency_selection", "Efficiency for gluino ~1800 GeV (Trigger+Prescale+Selection);Efficiency;Events", 100, 0, 1);
+  TH1F* h_gluino1800_efficiency_tight = new TH1F("h_gluino1800_efficiency_tight", "Efficiency for gluino ~1800 GeV (Trigger+Prescale+Tight Selection);Efficiency;Events", 100, 0, 1);
+  
+  // Validation histograms for gluino ~1000 GeV corner case at different selection stages
+  TH1F* h_gluino1000_efficiency_trigPres = new TH1F("h_gluino1000_efficiency_trigPres", "Efficiency for gluino ~1000 GeV (Trigger+Prescale);Efficiency;Events", 100, 0, 1);
+  TH1F* h_gluino1000_efficiency_selection = new TH1F("h_gluino1000_efficiency_selection", "Efficiency for gluino ~1000 GeV (Trigger+Prescale+Selection);Efficiency;Events", 100, 0, 1);
+  TH1F* h_gluino1000_efficiency_tight = new TH1F("h_gluino1000_efficiency_tight", "Efficiency for gluino ~1000 GeV (Trigger+Prescale+Tight Selection);Efficiency;Events", 100, 0, 1);
+  
+  // Validation histograms for gluino ~2200 GeV corner case at different selection stages
+  TH1F* h_gluino2200_efficiency_trigPres = new TH1F("h_gluino2200_efficiency_trigPres", "Efficiency for gluino ~2200 GeV (Trigger+Prescale);Efficiency;Events", 100, 0, 1);
+  TH1F* h_gluino2200_efficiency_selection = new TH1F("h_gluino2200_efficiency_selection", "Efficiency for gluino ~2200 GeV (Trigger+Prescale+Selection);Efficiency;Events", 100, 0, 1);
+  TH1F* h_gluino2200_efficiency_tight = new TH1F("h_gluino2200_efficiency_tight", "Efficiency for gluino ~2200 GeV (Trigger+Prescale+Tight Selection);Efficiency;Events", 100, 0, 1);
 
 // Define binning for pMSSMmotherID
   const int pMSSMmotherID_nbins = 600;
@@ -180,6 +244,30 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange) {
     TLeaf* leaf_mass = tree->GetLeaf("GenPart_mass");
     TLeaf* leaf_status = tree->GetLeaf("GenPart_status");
     TLeaf* leaf_statusFlags = tree->GetLeaf("GenPart_statusFlags");
+
+    // Check for gluino mass around 1800 GeV, 1000 GeV, and 2200 GeV for validation
+    bool hasGluino1800 = false;
+    bool hasGluino1000 = false;
+    bool hasGluino2200 = false;
+    float gluinoMass = 0;
+    int nGenPart_check = (int)leaf_nGenPart->GetValue();
+    for (int j = 0; j < nGenPart_check; j++) {
+      int j_particle_pdg = leaf_pdgId->GetValue(j);
+      if (abs(j_particle_pdg) == 1000021) { // Gluino PDG ID
+        float j_particle_mass = leaf_mass ? leaf_mass->GetValue(j) : 0;
+        gluinoMass = j_particle_mass;
+        if (j_particle_mass > 1750 && j_particle_mass < 1850) {
+          hasGluino1800 = true;
+        }
+        if (j_particle_mass > 950 && j_particle_mass < 1050) {
+          hasGluino1000 = true;
+        }
+        if (j_particle_mass > 2150 && j_particle_mass < 2250) {
+          hasGluino2200 = true;
+        }
+        if (hasGluino1800 || hasGluino1000 || hasGluino2200) break;
+      }
+    }
 
     
     const std::string prefix = "GenModel_pMSSM_MCMC_";
@@ -338,6 +426,45 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange) {
       maxEfficiency = std::max({efficiency, efficiencyMinus1, efficiencyPlus1, efficiencyMinus2, efficiencyPlus2});
       weightedEvents += maxEfficiency;
 
+      // Fill validation histograms for gluino mass corner cases
+      if (hasGluino1800 || hasGluino1000 || hasGluino2200) {
+        // Calculate efficiency from triggerAndPres map
+        double eff_trigPres_center = eff_profile_trigPres->GetBinContent(bin);
+        double eff_trigPres_plus1 = eff_profile_trigPres->GetBinContent(binPlus);
+        double eff_trigPres_minus1 = eff_profile_trigPres->GetBinContent(binMinus);
+        double eff_trigPres_plus2 = eff_profile_trigPres->GetBinContent(binPlusPlus);
+        double eff_trigPres_minus2 = eff_profile_trigPres->GetBinContent(binMinusMinus);
+        double maxEff_trigPres = std::max({eff_trigPres_center, eff_trigPres_minus1, eff_trigPres_plus1, eff_trigPres_minus2, eff_trigPres_plus2});
+        
+        // Calculate efficiency from triggerAndPresAndSelection map
+        double eff_selection_center = eff_profile_selection->GetBinContent(bin);
+        double eff_selection_plus1 = eff_profile_selection->GetBinContent(binPlus);
+        double eff_selection_minus1 = eff_profile_selection->GetBinContent(binMinus);
+        double eff_selection_plus2 = eff_profile_selection->GetBinContent(binPlusPlus);
+        double eff_selection_minus2 = eff_profile_selection->GetBinContent(binMinusMinus);
+        double maxEff_selection = std::max({eff_selection_center, eff_selection_minus1, eff_selection_plus1, eff_selection_minus2, eff_selection_plus2});
+        
+        // maxEfficiency already contains the tight selection efficiency
+        
+        if (hasGluino1800) {
+          h_gluino1800_efficiency_trigPres->Fill(maxEff_trigPres);
+          h_gluino1800_efficiency_selection->Fill(maxEff_selection);
+          h_gluino1800_efficiency_tight->Fill(maxEfficiency);
+        }
+        
+        if (hasGluino1000) {
+          h_gluino1000_efficiency_trigPres->Fill(maxEff_trigPres);
+          h_gluino1000_efficiency_selection->Fill(maxEff_selection);
+          h_gluino1000_efficiency_tight->Fill(maxEfficiency);
+        }
+        
+        if (hasGluino2200) {
+          h_gluino2200_efficiency_trigPres->Fill(maxEff_trigPres);
+          h_gluino2200_efficiency_selection->Fill(maxEff_selection);
+          h_gluino2200_efficiency_tight->Fill(maxEfficiency);
+        }
+      }
+
       // if (maxEfficiency < 0.5 ) continue;
 
       // Print the efficiency
@@ -377,7 +504,7 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange) {
       // << ", statusFlag=" << particle_statusFlags
       // << endl;
         
-    } // close condition on selectedChargion found 
+    } // close condition on selectedChargino found 
 
       // std::cout << "Found " << numChargino << " charginos in event " << iEvent << std::endl;
       // if (numChargino == 0) {
@@ -449,105 +576,107 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange) {
   std::cout << "Total elapsed time: " << elapsed_time.count() << " seconds" << std::endl;
   std::cout << "Average time per event: " << avg_time_per_event << " seconds" << std::endl;
   
-  
-    // Create canvas with 5 plots
-  TCanvas* c1 = new TCanvas("c1", Form("PDG Daughter Analysis"), 1600, 1000);
-  c1->Divide(3, 2);
-  
-  c1->cd(1);
-  h_particle_eta->SetStats(false); // Disable stats box for this histogram
-  h_particle_final_eta->SetStats(false);
-  h_particle_eta->Draw();
-  h_particle_eta->SetLineColor(kBlue);
-  h_particle_final_eta->SetLineColor(kRed);
-  h_particle_final_eta->Draw("SAME");
+  bool writeCanvas = false;
+  if (writeCanvas) {
+      // Create canvas with 5 plots
+    TCanvas* c1 = new TCanvas("c1", Form("PDG Daughter Analysis"), 1600, 1000);
+    c1->Divide(3, 2);
+    
+    c1->cd(1);
+    h_particle_eta->SetStats(false); // Disable stats box for this histogram
+    h_particle_final_eta->SetStats(false);
+    h_particle_eta->Draw();
+    h_particle_eta->SetLineColor(kBlue);
+    h_particle_final_eta->SetLineColor(kRed);
+    h_particle_final_eta->Draw("SAME");
 
-  // Create a legend for the first plot
-  TLegend* legend1 = new TLegend(0.1, 0.8, 0.9, 0.9); // Position: (x1, y1, x2, y2)
-  legend1->SetBorderSize(0); // No border
-  legend1->SetFillStyle(0);  // Transparent background
-  legend1->SetTextSize(0.04); 
-  legend1->AddEntry(h_particle_eta, Form("Orig: Avg=%.2f, Std=%.2f, N=%.2f", h_particle_eta->GetMean(), h_particle_eta->GetStdDev(), h_particle_eta->Integral()), "l");
-  legend1->AddEntry(h_particle_final_eta, Form("Final: Avg=%.2f, Std=%.2f, N=%.2f", h_particle_final_eta->GetMean(), h_particle_final_eta->GetStdDev(), h_particle_final_eta->Integral()), "l");
-  legend1->Draw();
+    // Create a legend for the first plot
+    TLegend* legend1 = new TLegend(0.1, 0.8, 0.9, 0.9); // Position: (x1, y1, x2, y2)
+    legend1->SetBorderSize(0); // No border
+    legend1->SetFillStyle(0);  // Transparent background
+    legend1->SetTextSize(0.04); 
+    legend1->AddEntry(h_particle_eta, Form("Orig: Avg=%.2f, Std=%.2f, N=%.2f", h_particle_eta->GetMean(), h_particle_eta->GetStdDev(), h_particle_eta->Integral()), "l");
+    legend1->AddEntry(h_particle_final_eta, Form("Final: Avg=%.2f, Std=%.2f, N=%.2f", h_particle_final_eta->GetMean(), h_particle_final_eta->GetStdDev(), h_particle_final_eta->Integral()), "l");
+    legend1->Draw();
 
-  c1->cd(2);
-  h_particle_pt->SetStats(false); 
-  h_particle_final_pt->SetStats(false);
-  h_particle_pt->Draw();
-  h_particle_final_pt->SetLineColor(kRed);
-  h_particle_final_pt->Draw("SAME");
+    c1->cd(2);
+    h_particle_pt->SetStats(false); 
+    h_particle_final_pt->SetStats(false);
+    h_particle_pt->Draw();
+    h_particle_final_pt->SetLineColor(kRed);
+    h_particle_final_pt->Draw("SAME");
 
-  // Create a legend for the second plot
-  TLegend* legend2 = new TLegend(0.1, 0.8, 0.9, 0.9);
-  legend2->SetBorderSize(0);
-  legend2->SetFillStyle(0);
-  legend2->SetTextSize(0.04); 
-  legend2->AddEntry(h_particle_pt, Form("Orig: Avg=%.2f, Std=%.2f, N=%.2f", h_particle_pt->GetMean(), h_particle_pt->GetStdDev(), h_particle_pt->Integral()), "l");
-  legend2->AddEntry(h_particle_final_pt, Form("Final: Avg=%.2f, Std=%.2f, N=%.2f", h_particle_final_pt->GetMean(), h_particle_final_pt->GetStdDev(), h_particle_final_pt->Integral()), "l");
-  legend2->Draw();
+    // Create a legend for the second plot
+    TLegend* legend2 = new TLegend(0.1, 0.8, 0.9, 0.9);
+    legend2->SetBorderSize(0);
+    legend2->SetFillStyle(0);
+    legend2->SetTextSize(0.04); 
+    legend2->AddEntry(h_particle_pt, Form("Orig: Avg=%.2f, Std=%.2f, N=%.2f", h_particle_pt->GetMean(), h_particle_pt->GetStdDev(), h_particle_pt->Integral()), "l");
+    legend2->AddEntry(h_particle_final_pt, Form("Final: Avg=%.2f, Std=%.2f, N=%.2f", h_particle_final_pt->GetMean(), h_particle_final_pt->GetStdDev(), h_particle_final_pt->Integral()), "l");
+    legend2->Draw();
 
-  c1->cd(3);
-  h_particle_beta->Draw();
-  h_particle_beta->SetStats(false);
-  h_particle_final_beta->SetStats(false);
-  h_particle_final_beta->SetLineColor(kRed);
-  h_particle_final_beta->Draw("SAME");
+    c1->cd(3);
+    h_particle_beta->Draw();
+    h_particle_beta->SetStats(false);
+    h_particle_final_beta->SetStats(false);
+    h_particle_final_beta->SetLineColor(kRed);
+    h_particle_final_beta->Draw("SAME");
 
-  // Create a legend for the third plot
-  TLegend* legend3 = new TLegend(0.1, 0.8, 0.9, 0.9);
-  legend3->SetBorderSize(0);
-  legend3->SetFillStyle(0);
-  legend3->SetTextSize(0.04); 
-  legend3->AddEntry(h_particle_beta, Form("Orig: Avg=%.2f, Std=%.2f, N=%.2f", h_particle_beta->GetMean(), h_particle_beta->GetStdDev(), h_particle_beta->Integral()), "l");
-  legend3->AddEntry(h_particle_final_beta, Form("Final: Avg=%.2f, Std=%.2f, N=%.2f", h_particle_final_beta->GetMean(), h_particle_final_beta->GetStdDev(), h_particle_final_beta->Integral()), "l");
-  legend3->Draw();
+    // Create a legend for the third plot
+    TLegend* legend3 = new TLegend(0.1, 0.8, 0.9, 0.9);
+    legend3->SetBorderSize(0);
+    legend3->SetFillStyle(0);
+    legend3->SetTextSize(0.04); 
+    legend3->AddEntry(h_particle_beta, Form("Orig: Avg=%.2f, Std=%.2f, N=%.2f", h_particle_beta->GetMean(), h_particle_beta->GetStdDev(), h_particle_beta->Integral()), "l");
+    legend3->AddEntry(h_particle_final_beta, Form("Final: Avg=%.2f, Std=%.2f, N=%.2f", h_particle_final_beta->GetMean(), h_particle_final_beta->GetStdDev(), h_particle_final_beta->Integral()), "l");
+    legend3->Draw();
 
-  c1->cd(4);
-  h_models_mother->Draw();
-  h_models_mother->SetStats(false);
-  h_models_mother_final->SetStats(false);
-  h_models_mother_final->SetLineColor(kRed);
-  h_models_mother_final->Draw("SAME");
+    c1->cd(4);
+    h_models_mother->Draw();
+    h_models_mother->SetStats(false);
+    h_models_mother_final->SetStats(false);
+    h_models_mother_final->SetLineColor(kRed);
+    h_models_mother_final->Draw("SAME");
 
-  // // Add the legend here too
-  // TLegend* legend4 = new TLegend(0.1, 0.8, 0.9, 0.9);
-  // legend4->SetBorderSize(0);
-  // legend4->SetFillStyle(0);
-  // legend4->SetTextSize(0.04);
-  // legend4->AddEntry(h_models_mother, Form("Orig: Avg=%.2f, Std=%.2f, N=%.2f", h_models->GetMean(), h_models->GetStdDev(), h_models->Integral()), "l");
-  // legend4->AddEntry(h_models_mother_final, Form("Final: Avg=%.2f, Std=%.2f, N=%.2f", h_models_final->GetMean(), h_models_final->GetStdDev(), h_models_final->Integral()), "l");
-  // legend4->Draw();
+    // // Add the legend here too
+    // TLegend* legend4 = new TLegend(0.1, 0.8, 0.9, 0.9);
+    // legend4->SetBorderSize(0);
+    // legend4->SetFillStyle(0);
+    // legend4->SetTextSize(0.04);
+    // legend4->AddEntry(h_models_mother, Form("Orig: Avg=%.2f, Std=%.2f, N=%.2f", h_models->GetMean(), h_models->GetStdDev(), h_models->Integral()), "l");
+    // legend4->AddEntry(h_models_mother_final, Form("Final: Avg=%.2f, Std=%.2f, N=%.2f", h_models_final->GetMean(), h_models_final->GetStdDev(), h_models_final->Integral()), "l");
+    // legend4->Draw();
 
-  // Let's repeat what we have in cd(4) but now normalize the histograms to unit aread
-  // c1->cd(5);
-  // TH1F* h_models_norm = (TH1F*)h_models_mother->Clone("h_models_mother_norm");
-  // TH1F* h_models_final_norm = (TH1F*)h_models_mother_final->Clone("h_models_mother_final_norm");
-  // h_models_norm->Scale(1.0 / h_models_norm->Integral());
-  // h_models_final_norm->Scale(1.0 / h_models_final_norm->Integral());
-  // h_models_norm->Draw();
-  // h_models_norm->SetStats(false);
-  // h_models_final_norm->SetStats(false);
-  // h_models_final_norm->SetLineColor(kRed);
-  // h_models_final_norm->Draw("SAME");
+    // Let's repeat what we have in cd(4) but now normalize the histograms to unit aread
+    // c1->cd(5);
+    // TH1F* h_models_norm = (TH1F*)h_models_mother->Clone("h_models_mother_norm");
+    // TH1F* h_models_final_norm = (TH1F*)h_models_mother_final->Clone("h_models_mother_final_norm");
+    // h_models_norm->Scale(1.0 / h_models_norm->Integral());
+    // h_models_final_norm->Scale(1.0 / h_models_final_norm->Integral());
+    // h_models_norm->Draw();
+    // h_models_norm->SetStats(false);
+    // h_models_final_norm->SetStats(false);
+    // h_models_final_norm->SetLineColor(kRed);
+    // h_models_final_norm->Draw("SAME");
 
-  c1->cd(6);
-  h_models_daughter->Draw();
-  h_models_daughter->SetStats(false);
-  h_models_daughter_final->SetStats(false);
-  h_models_daughter_final->SetLineColor(kRed);
-  h_models_daughter_final->Draw("SAME");
-  TLegend* legend5 = new TLegend(0.1, 0.8, 0.9, 0.9);
-  legend5->SetBorderSize(0);
-  legend5->SetFillStyle(0);
-  legend5->SetTextSize(0.04);
-  legend5->AddEntry(h_models_daughter, Form("Orig: Avg=%.2f, Std=%.2f, N=%.2f", h_models_daughter->GetMean(), h_models_daughter->GetStdDev(), h_models_daughter->Integral()), "l");
-  legend5->AddEntry(h_models_daughter_final, Form("Final: Avg=%.2f, Std=%.2f, N=%.2f", h_models_daughter_final->GetMean(), h_models_daughter_final->GetStdDev(), h_models_daughter_final->Integral()), "l");
-  legend5->Draw();
+    c1->cd(6);
+    h_models_daughter->Draw();
+    h_models_daughter->SetStats(false);
+    h_models_daughter_final->SetStats(false);
+    h_models_daughter_final->SetLineColor(kRed);
+    h_models_daughter_final->Draw("SAME");
+    TLegend* legend5 = new TLegend(0.1, 0.8, 0.9, 0.9);
+    legend5->SetBorderSize(0);
+    legend5->SetFillStyle(0);
+    legend5->SetTextSize(0.04);
+    legend5->AddEntry(h_models_daughter, Form("Orig: Avg=%.2f, Std=%.2f, N=%.2f", h_models_daughter->GetMean(), h_models_daughter->GetStdDev(), h_models_daughter->Integral()), "l");
+    legend5->AddEntry(h_models_daughter_final, Form("Final: Avg=%.2f, Std=%.2f, N=%.2f", h_models_daughter_final->GetMean(), h_models_daughter_final->GetStdDev(), h_models_daughter_final->Integral()), "l");
+    legend5->Draw();
 
 
-  // Save canvas
-  c1->SaveAs(Form("pmssm_analysis.png"));
+    // Save canvas
+    c1->SaveAs(Form("pmssm_analysis.png"));
+  } // end of writeCanvas condition
   thnSparseYields->Write();
   h_particle_pdgId->Write();
   h_particle_final_pt->Write();
@@ -560,8 +689,18 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange) {
   h_models_mother_final->Write();
   h_models_daughter->Write();
   h_models_daughter_final->Write();
+  h_gluino1800_efficiency_trigPres->Write();
+  h_gluino1800_efficiency_selection->Write();
+  h_gluino1800_efficiency_tight->Write();
+  h_gluino1000_efficiency_trigPres->Write();
+  h_gluino1000_efficiency_selection->Write();
+  h_gluino1000_efficiency_tight->Write();
+  h_gluino2200_efficiency_trigPres->Write();
+  h_gluino2200_efficiency_selection->Write();
+  h_gluino2200_efficiency_tight->Write();
   // h_models->Write();
   // h_models_final->Write();
+
 
   
     // Clean up
