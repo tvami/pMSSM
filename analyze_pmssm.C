@@ -163,6 +163,36 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange, TString originalFileP
   TH1F* h_gluino2200_efficiency_trigPres = new TH1F("h_gluino2200_efficiency_trigPres", "Efficiency for gluino ~2200 GeV (Trigger+Prescale);Efficiency;Events", 100, 0, 1);
   TH1F* h_gluino2200_efficiency_selection = new TH1F("h_gluino2200_efficiency_selection", "Efficiency for gluino ~2200 GeV (Trigger+Prescale+Selection);Efficiency;Events", 100, 0, 1);
   TH1F* h_gluino2200_efficiency_tight = new TH1F("h_gluino2200_efficiency_tight", "Efficiency for gluino ~2200 GeV (Trigger+Prescale+Tight Selection);Efficiency;Events", 100, 0, 1);
+  
+  // Validation histograms for stop ~1000 GeV corner case at different selection stages
+  TH1F* h_stop1000_efficiency_trigPres = new TH1F("h_stop1000_efficiency_trigPres", "Efficiency for stop ~1000 GeV (Trigger+Prescale);Efficiency;Events", 100, 0, 1);
+  TH1F* h_stop1000_efficiency_selection = new TH1F("h_stop1000_efficiency_selection", "Efficiency for stop ~1000 GeV (Trigger+Prescale+Selection);Efficiency;Events", 100, 0, 1);
+  TH1F* h_stop1000_efficiency_tight = new TH1F("h_stop1000_efficiency_tight", "Efficiency for stop ~1000 GeV (Trigger+Prescale+Tight Selection);Efficiency;Events", 100, 0, 1);
+  
+  // Validation histograms for stop ~1800 GeV corner case at different selection stages
+  TH1F* h_stop1800_efficiency_trigPres = new TH1F("h_stop1800_efficiency_trigPres", "Efficiency for stop ~1800 GeV (Trigger+Prescale);Efficiency;Events", 100, 0, 1);
+  TH1F* h_stop1800_efficiency_selection = new TH1F("h_stop1800_efficiency_selection", "Efficiency for stop ~1800 GeV (Trigger+Prescale+Selection);Efficiency;Events", 100, 0, 1);
+  TH1F* h_stop1800_efficiency_tight = new TH1F("h_stop1800_efficiency_tight", "Efficiency for stop ~1800 GeV (Trigger+Prescale+Tight Selection);Efficiency;Events", 100, 0, 1);
+  
+  // Validation histograms for stop ~2200 GeV corner case at different selection stages
+  TH1F* h_stop2200_efficiency_trigPres = new TH1F("h_stop2200_efficiency_trigPres", "Efficiency for stop ~2200 GeV (Trigger+Prescale);Efficiency;Events", 100, 0, 1);
+  TH1F* h_stop2200_efficiency_selection = new TH1F("h_stop2200_efficiency_selection", "Efficiency for stop ~2200 GeV (Trigger+Prescale+Selection);Efficiency;Events", 100, 0, 1);
+  TH1F* h_stop2200_efficiency_tight = new TH1F("h_stop2200_efficiency_tight", "Efficiency for stop ~2200 GeV (Trigger+Prescale+Tight Selection);Efficiency;Events", 100, 0, 1);
+  
+  // Validation histograms for stau ~550 GeV corner case at different selection stages
+  TH1F* h_stau550_efficiency_trigPres = new TH1F("h_stau550_efficiency_trigPres", "Efficiency for stau ~550 GeV (Trigger+Prescale);Efficiency;Events", 100, 0, 1);
+  TH1F* h_stau550_efficiency_selection = new TH1F("h_stau550_efficiency_selection", "Efficiency for stau ~550 GeV (Trigger+Prescale+Selection);Efficiency;Events", 100, 0, 1);
+  TH1F* h_stau550_efficiency_tight = new TH1F("h_stau550_efficiency_tight", "Efficiency for stau ~550 GeV (Trigger+Prescale+Tight Selection);Efficiency;Events", 100, 0, 1);
+  
+  // Validation histograms for stau ~850 GeV corner case at different selection stages
+  TH1F* h_stau850_efficiency_trigPres = new TH1F("h_stau850_efficiency_trigPres", "Efficiency for stau ~850 GeV (Trigger+Prescale);Efficiency;Events", 100, 0, 1);
+  TH1F* h_stau850_efficiency_selection = new TH1F("h_stau850_efficiency_selection", "Efficiency for stau ~850 GeV (Trigger+Prescale+Selection);Efficiency;Events", 100, 0, 1);
+  TH1F* h_stau850_efficiency_tight = new TH1F("h_stau850_efficiency_tight", "Efficiency for stau ~850 GeV (Trigger+Prescale+Tight Selection);Efficiency;Events", 100, 0, 1);
+  
+  // Validation histograms for stau ~1200 GeV corner case at different selection stages
+  TH1F* h_stau1200_efficiency_trigPres = new TH1F("h_stau1200_efficiency_trigPres", "Efficiency for stau ~1200 GeV (Trigger+Prescale);Efficiency;Events", 100, 0, 1);
+  TH1F* h_stau1200_efficiency_selection = new TH1F("h_stau1200_efficiency_selection", "Efficiency for stau ~1200 GeV (Trigger+Prescale+Selection);Efficiency;Events", 100, 0, 1);
+  TH1F* h_stau1200_efficiency_tight = new TH1F("h_stau1200_efficiency_tight", "Efficiency for stau ~1200 GeV (Trigger+Prescale+Tight Selection);Efficiency;Events", 100, 0, 1);
 
 // Define binning for pMSSMmotherID
   const int pMSSMmotherID_nbins = 600;
@@ -245,16 +275,25 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange, TString originalFileP
     TLeaf* leaf_status = tree->GetLeaf("GenPart_status");
     TLeaf* leaf_statusFlags = tree->GetLeaf("GenPart_statusFlags");
 
-    // Check for gluino mass around 1800 GeV, 1000 GeV, and 2200 GeV for validation
+    // Check for gluino mass around 1800 GeV, 1000 GeV, 2200 GeV, stop mass around 1000 GeV, 1800 GeV, 2200 GeV, and stau mass around 550 GeV, 850 GeV, and 1200 GeV for validation
     bool hasGluino1800 = false;
     bool hasGluino1000 = false;
     bool hasGluino2200 = false;
+    bool hasStop1000 = false;
+    bool hasStop1800 = false;
+    bool hasStop2200 = false;
+    bool hasStau550 = false;
+    bool hasStau850 = false;
+    bool hasStau1200 = false;
     float gluinoMass = 0;
+    float stopMass = 0;
+    float stauMass = 0;
     int nGenPart_check = (int)leaf_nGenPart->GetValue();
     for (int j = 0; j < nGenPart_check; j++) {
       int j_particle_pdg = leaf_pdgId->GetValue(j);
+      float j_particle_mass = leaf_mass ? leaf_mass->GetValue(j) : 0;
+      
       if (abs(j_particle_pdg) == 1000021) { // Gluino PDG ID
-        float j_particle_mass = leaf_mass ? leaf_mass->GetValue(j) : 0;
         gluinoMass = j_particle_mass;
         if (j_particle_mass > 1750 && j_particle_mass < 1850) {
           hasGluino1800 = true;
@@ -265,8 +304,35 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange, TString originalFileP
         if (j_particle_mass > 2150 && j_particle_mass < 2250) {
           hasGluino2200 = true;
         }
-        if (hasGluino1800 || hasGluino1000 || hasGluino2200) break;
       }
+      
+      if (abs(j_particle_pdg) == 1000006 || abs(j_particle_pdg) == 2000006) { // Stop PDG ID
+        stopMass = j_particle_mass;
+        if (j_particle_mass > 950 && j_particle_mass < 1050) {
+          hasStop1000 = true;
+        }
+        if (j_particle_mass > 1750 && j_particle_mass < 1850) {
+          hasStop1800 = true;
+        }
+        if (j_particle_mass > 2150 && j_particle_mass < 2250) {
+          hasStop2200 = true;
+        }
+      }
+      
+      if (abs(j_particle_pdg) == 1000015 || abs(j_particle_pdg) == 2000015) { // Stau PDG ID
+        stauMass = j_particle_mass;
+        if (j_particle_mass > 500 && j_particle_mass < 600) {
+          hasStau550 = true;
+        }
+        if (j_particle_mass > 800 && j_particle_mass < 900) {
+          hasStau850 = true;
+        }
+        if (j_particle_mass > 1150 && j_particle_mass < 1250) {
+          hasStau1200 = true;
+        }
+      }
+      
+      if (hasGluino1800 || hasGluino1000 || hasGluino2200 || hasStop1000 || hasStop1800 || hasStop2200 || hasStau550 || hasStau850 || hasStau1200) break;
     }
 
     
@@ -426,8 +492,8 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange, TString originalFileP
       maxEfficiency = std::max({efficiency, efficiencyMinus1, efficiencyPlus1, efficiencyMinus2, efficiencyPlus2});
       weightedEvents += maxEfficiency;
 
-      // Fill validation histograms for gluino mass corner cases
-      if (hasGluino1800 || hasGluino1000 || hasGluino2200) {
+      // Fill validation histograms for gluino, stop, and stau mass corner cases
+      if (hasGluino1800 || hasGluino1000 || hasGluino2200 || hasStop1000 || hasStop1800 || hasStop2200 || hasStau550 || hasStau850 || hasStau1200) {
         // Calculate efficiency from triggerAndPres map
         double eff_trigPres_center = eff_profile_trigPres->GetBinContent(bin);
         double eff_trigPres_plus1 = eff_profile_trigPres->GetBinContent(binPlus);
@@ -462,6 +528,42 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange, TString originalFileP
           h_gluino2200_efficiency_trigPres->Fill(maxEff_trigPres);
           h_gluino2200_efficiency_selection->Fill(maxEff_selection);
           h_gluino2200_efficiency_tight->Fill(maxEfficiency);
+        }
+        
+        if (hasStop1000) {
+          h_stop1000_efficiency_trigPres->Fill(maxEff_trigPres);
+          h_stop1000_efficiency_selection->Fill(maxEff_selection);
+          h_stop1000_efficiency_tight->Fill(maxEfficiency);
+        }
+        
+        if (hasStop1800) {
+          h_stop1800_efficiency_trigPres->Fill(maxEff_trigPres);
+          h_stop1800_efficiency_selection->Fill(maxEff_selection);
+          h_stop1800_efficiency_tight->Fill(maxEfficiency);
+        }
+        
+        if (hasStop2200) {
+          h_stop2200_efficiency_trigPres->Fill(maxEff_trigPres);
+          h_stop2200_efficiency_selection->Fill(maxEff_selection);
+          h_stop2200_efficiency_tight->Fill(maxEfficiency);
+        }
+        
+        if (hasStau550) {
+          h_stau550_efficiency_trigPres->Fill(maxEff_trigPres);
+          h_stau550_efficiency_selection->Fill(maxEff_selection);
+          h_stau550_efficiency_tight->Fill(maxEfficiency);
+        }
+        
+        if (hasStau850) {
+          h_stau850_efficiency_trigPres->Fill(maxEff_trigPres);
+          h_stau850_efficiency_selection->Fill(maxEff_selection);
+          h_stau850_efficiency_tight->Fill(maxEfficiency);
+        }
+        
+        if (hasStau1200) {
+          h_stau1200_efficiency_trigPres->Fill(maxEff_trigPres);
+          h_stau1200_efficiency_selection->Fill(maxEff_selection);
+          h_stau1200_efficiency_tight->Fill(maxEfficiency);
         }
       }
 
@@ -679,12 +781,12 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange, TString originalFileP
   } // end of writeCanvas condition
   thnSparseYields->Write();
   h_particle_pdgId->Write();
-  h_particle_final_pt->Write();
-  h_particle_final_eta->Write();
-  h_particle_final_beta->Write();
   h_particle_pt->Write();
+  h_particle_final_pt->Write();
   h_particle_eta->Write();
+  h_particle_final_eta->Write();
   h_particle_beta->Write();
+  h_particle_final_beta->Write();
   h_models_mother->Write();
   h_models_mother_final->Write();
   h_models_daughter->Write();
@@ -698,6 +800,24 @@ void analyze_pmssm(Long64_t startRange, Long64_t endRange, TString originalFileP
   h_gluino2200_efficiency_trigPres->Write();
   h_gluino2200_efficiency_selection->Write();
   h_gluino2200_efficiency_tight->Write();
+  h_stop1000_efficiency_trigPres->Write();
+  h_stop1000_efficiency_selection->Write();
+  h_stop1000_efficiency_tight->Write();
+  h_stop1800_efficiency_trigPres->Write();
+  h_stop1800_efficiency_selection->Write();
+  h_stop1800_efficiency_tight->Write();
+  h_stop2200_efficiency_trigPres->Write();
+  h_stop2200_efficiency_selection->Write();
+  h_stop2200_efficiency_tight->Write();
+  h_stau550_efficiency_trigPres->Write();
+  h_stau550_efficiency_selection->Write();
+  h_stau550_efficiency_tight->Write();
+  h_stau850_efficiency_trigPres->Write();
+  h_stau850_efficiency_selection->Write();
+  h_stau850_efficiency_tight->Write();
+  h_stau1200_efficiency_trigPres->Write();
+  h_stau1200_efficiency_selection->Write();
+  h_stau1200_efficiency_tight->Write();
   // h_models->Write();
   // h_models_final->Write();
 
